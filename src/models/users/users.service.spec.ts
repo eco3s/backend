@@ -1,63 +1,136 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { PrismaService } from '../../prisma/prisma.service'
-import { PrismaModule } from '../../prisma/prisma.module'
 import { UsersService } from './users.service'
+import { Prisma, PrismaClient } from '@prisma/client'
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended'
+import { nanoid } from 'nanoid'
 
 describe('UsersService', () => {
 	let service: UsersService
+	let prisma: DeepMockProxy<PrismaClient>
 
 	beforeEach(async () => {
 		const module: TestingModule =
 			await Test.createTestingModule({
-				imports: [PrismaModule],
-				providers: [UsersService],
-			}).compile()
+				providers: [UsersService, PrismaService],
+			})
+				.overrideProvider(PrismaService)
+				.useValue(mockDeep<PrismaClient>())
+				.compile()
 
 		service = module.get<UsersService>(UsersService)
-		await new PrismaService().user.deleteMany()
+		prisma = module.get(PrismaService)
+
+		await prisma.user.deleteMany({})
 	})
 
-	it('CRUD user', async () => {
-		const name = 'abiria'
+	describe('CRUD tests with user', () => {
+		// test data
+		const user = {
+			name: 'abiria',
+			id: nanoid(),
+			createdAt: new Date(),
+		}
 
-		const user = await service.createUser({ name })
+		it('must create user with given data', () => {
+			prisma.user.create.mockResolvedValueOnce(user)
 
-		expect(user).toHaveProperty('name', name)
+			expect(
+				service.createUser({
+					name: user.name,
+				}),
+			).resolves.toHaveProperty('name', user.name)
+		})
 
-		expect(
-			await service.getUserById(user.id),
-		).toHaveProperty('name', name)
+		it('must return user with given id', () => {
+			prisma.user.findMany.mockResolvedValueOnce([
+				user,
+			])
 
-		const newName = 'kokok'
+			expect(
+				service.getAllUsers(),
+			).resolves.toHaveLength(1)
+		})
 
-		expect(
-			await service.updateUser(user.id, {
-				name: newName,
-			}),
-		).toHaveProperty('name', newName)
+		it('must return user with given id', () => {
+			prisma.user.findUnique.mockResolvedValueOnce(
+				user,
+			)
 
-		expect(
-			await service.deleteUser(user.id),
-		).toHaveProperty('name', newName)
+			expect(
+				service.getUserById(user.id),
+			).resolves.toHaveProperty('name', user.name)
+		})
 
-		expect(await service.getAllUsers()).toHaveLength(0)
+		it('must find user with given id and update it with given data', () => {
+			prisma.user.update.mockResolvedValueOnce({
+				...user,
+				name: 'newName',
+			})
+
+			expect(
+				service.updateUser(user.id, {
+					name: 'newName',
+				}),
+			).resolves.toHaveProperty('name', 'newName')
+		})
+
+		it('must find user with given id and must not modify anything', () => {
+			prisma.user.update.mockResolvedValueOnce(user)
+
+			expect(
+				service.updateUser(user.id, {}),
+			).resolves.toHaveProperty('name', user.name)
+		})
+
+		it('must delete user with given id', () => {
+			prisma.user.delete.mockResolvedValueOnce(user)
+
+			expect(
+				service.deleteUser(user.id),
+			).resolves.toHaveProperty('name', user.name)
+		})
 	})
 
-	it('must return null if there is no such user to find', async () => {
-		expect(
-			await service.getUserById('ThereIsNoSuchId'),
-		).toBeNull()
-	})
+	describe('return null if target does not exist', () => {
+		it('must return null if there is no such user to find', () => {
+			prisma.user.findUnique.mockResolvedValueOnce(
+				null,
+			)
 
-	it('must return null if there is no such user to update', async () => {
-		expect(
-			await service.updateUser('ThereIsNoSuchId', {}),
-		).toBeNull()
-	})
+			expect(
+				service.getUserById('ThereIsNoSuchId'),
+			).resolves.toBeNull()
+		})
 
-	it('must return null if there is no such user to delete', async () => {
-		expect(
-			await service.deleteUser('ThereIsNoSuchId'),
-		).toBeNull()
+		it('must return null if there is no such user to update', () => {
+			prisma.user.update.mockRejectedValueOnce(
+				// NOTE: in real cases, it will throw `RecordNotFound` error,
+				// which is impossible to be caught in native javascript.
+				// (https://github.com/prisma/prisma/discussions/4552)
+				//
+				// so in this case, we will just throw any Error object
+				new Error('RecordNotFoundException'),
+			)
+
+			expect(
+				service.updateUser('ThereIsNoSuchId', {}),
+			).resolves.toBeNull()
+		})
+
+		it('must return null if there is no such user to delete', () => {
+			prisma.user.delete.mockRejectedValueOnce(
+				// NOTE: in real cases, it will throw `RecordNotFound` error,
+				// which is impossible to be caught in native javascript.
+				// (https://github.com/prisma/prisma/discussions/4552)
+				//
+				// so in this case, we will just throw any Error object
+				new Error('RecordNotFoundException'),
+			)
+
+			expect(
+				service.deleteUser('ThereIsNoSuchId'),
+			).resolves.toBeNull()
+		})
 	})
 })
