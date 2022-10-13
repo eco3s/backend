@@ -1,0 +1,4 @@
+/dist
+**/.gitignore
+**/.prettierignore
+/pnpm-lock.yaml
