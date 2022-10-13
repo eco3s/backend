@@ -37,3 +37,7 @@ $ pnpm test:e2e
 # test coverage
 $ pnpm test:cov
 ```
+
+## License
+
+[![GitHub](https://img.shields.io/github/license/eco3s/backend?color=2e8555&style=for-the-badge)](./LICENSE)
