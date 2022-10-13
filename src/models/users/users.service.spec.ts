@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { User } from './interfaces/user'
+import { PrismaService } from '../../prisma/prisma.service'
+import { PrismaModule } from '../../prisma/prisma.module'
 import { UsersService } from './users.service'
 
 describe('UsersService', () => {
@@ -8,53 +9,55 @@ describe('UsersService', () => {
 	beforeEach(async () => {
 		const module: TestingModule =
 			await Test.createTestingModule({
+				imports: [PrismaModule],
 				providers: [UsersService],
 			}).compile()
 
 		service = module.get<UsersService>(UsersService)
+		await new PrismaService().user.deleteMany()
 	})
 
-	it('CRUD user', () => {
+	it('CRUD user', async () => {
 		const name = 'abiria'
 
-		const user = service.createUser({ name })
+		const user = await service.createUser({ name })
 
 		expect(user).toHaveProperty('name', name)
 
-		expect(service.getUserById(user.id)).toHaveProperty(
-			'name',
-			name,
-		)
+		expect(
+			await service.getUserById(user.id),
+		).toHaveProperty('name', name)
 
 		const newName = 'kokok'
 
 		expect(
-			service.updateUser(user.id, { name: newName }),
+			await service.updateUser(user.id, {
+				name: newName,
+			}),
 		).toHaveProperty('name', newName)
 
-		expect(service.deleteUser(user.id)).toHaveProperty(
-			'name',
-			newName,
-		)
+		expect(
+			await service.deleteUser(user.id),
+		).toHaveProperty('name', newName)
 
-		expect(service.getAllUsers()).toHaveLength(0)
+		expect(await service.getAllUsers()).toHaveLength(0)
 	})
 
-	it('must return null if there is no such user to find', () => {
+	it('must return null if there is no such user to find', async () => {
 		expect(
-			service.getUserById('ThereIsNoSuchId'),
+			await service.getUserById('ThereIsNoSuchId'),
 		).toBeNull()
 	})
 
-	it('must return null if there is no such user to update', () => {
+	it('must return null if there is no such user to update', async () => {
 		expect(
-			service.updateUser('ThereIsNoSuchId', {}),
+			await service.updateUser('ThereIsNoSuchId', {}),
 		).toBeNull()
 	})
 
-	it('must return null if there is no such user to delete', () => {
+	it('must return null if there is no such user to delete', async () => {
 		expect(
-			service.deleteUser('ThereIsNoSuchId'),
+			await service.deleteUser('ThereIsNoSuchId'),
 		).toBeNull()
 	})
 })

@@ -3,52 +3,64 @@ import { User } from './interfaces/user'
 import _ from 'lodash'
 import { UserInit } from './interfaces/user-init'
 import { UserInitPartial } from './interfaces/user-init-partial'
+import { PrismaService } from '../../prisma/prisma.service'
+import { Prisma, User as PrismaUser } from '@prisma/client'
 
 @Injectable()
 export class UsersService {
-	private users: Array<User> = []
+	constructor(private prisma: PrismaService) {}
 
-	getAllUsers(): Array<User> {
-		return this.users
+	async getAllUsers(): Promise<Array<PrismaUser>> {
+		return await this.prisma.user.findMany()
 	}
 
-	getUserById(id: string): User | null {
-		return (
-			_.find(this.users, {
+	async getUserById(
+		id: string,
+	): Promise<PrismaUser | null> {
+		return await this.prisma.user.findUnique({
+			where: {
 				id,
-			}) ?? null
-		)
+			},
+		})
 	}
 
-	createUser(init: UserInit): User {
-		const newUser = new User(init.name)
-		this.users.push(newUser)
-
-		return newUser
+	async createUser(init: UserInit): Promise<PrismaUser> {
+		return this.prisma.user.create({
+			data: {
+				name: init.name,
+			},
+		})
 	}
 
-	updateUser(
+	async updateUser(
 		id: string,
 		update: UserInitPartial,
-	): User | null {
-		const index = _.findIndex(this.users, {
-			id,
-		})
-
-		if (index === -1) return null
-
-		return _.update(
-			this.users,
-			`[${index}]`,
-			(u: User) => Object.assign(u, update),
-		)[index]
+	): Promise<PrismaUser | null> {
+		try {
+			return await this.prisma.user.update({
+				where: {
+					id,
+				},
+				data: {
+					name: update.name,
+				},
+			})
+		} catch {
+			return null
+		}
 	}
 
-	deleteUser(id: string): User | null {
-		return (
-			_.remove(this.users, {
-				id,
-			})[0] ?? null
-		)
+	async deleteUser(
+		id: string,
+	): Promise<PrismaUser | null> {
+		try {
+			return await this.prisma.user.delete({
+				where: {
+					id,
+				},
+			})
+		} catch {
+			return null
+		}
 	}
 }
