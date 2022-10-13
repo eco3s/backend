@@ -3,3 +3,7 @@
 **/.prettierignore
 /pnpm-lock.yaml
 /coverage
+.env
+.node-version
+/LICENSE
+/prisma
