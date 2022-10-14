@@ -1,0 +1,23 @@
+name: eco3s
+services:
+  db:
+    image: postgres:14.5-alpine
+    restart: always
+    volumes:
+      # default to `data` volume
+      - type: volume
+        source: db-data
+        # the path where all data will be stored
+        target: /var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD
+    networks:
+      - db-connection
+    ports:
+      - 5432:5432
+volumes:
+  # persistent data volume for database
+  db-data:
+networks:
+  db-connection:
+    driver: bridge
