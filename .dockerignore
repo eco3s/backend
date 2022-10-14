@@ -1,0 +1,12 @@
+/**
+!/prisma/schema.prisma
+!/src
+!/test
+!/.node-version
+!/.swcrc
+!/jest.config.ts
+!/nest-cli.json
+!/package.json
+!/pnpm-lock.yaml
+!/tsconfig.build.json
+!/tsconfig.json

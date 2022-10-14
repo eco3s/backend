@@ -13,8 +13,26 @@ services:
       - POSTGRES_PASSWORD
     networks:
       - db-connection
+    # ports:
+    #   - 5432:5432
+  # main application, API backend
+  api:
+    build:
+      # find Dockerfile in root
+      context: .
+      # in development process, do not bundle code
+      # to make it easier to inspect
+      target: build
+    # in development process, shuts down container that has any issue
+    restart: on-failure:2
+    environment:
+      - DATABASE_URL
+    networks:
+      - db-connection
     ports:
-      - 5432:5432
+      - 3000:3000
+    depends_on:
+      - db
 volumes:
   # persistent data volume for database
   db-data:
