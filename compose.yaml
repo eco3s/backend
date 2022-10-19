@@ -29,13 +29,31 @@ services:
       - DATABASE_URL
     networks:
       - db-connection
+      - proxy-connection
     ports:
       - 3000:3000
     depends_on:
       - db
+  # reverse proxy, image cache
+  proxy:
+    # build context where Dockerfile is located
+    build: ./docker/proxy
+    restart: on-failure:1
+    environment:
+      NGINX_HOST: localhost
+      NGINX_PROXY_HOST: api
+      NGINX_PORT: 80
+      NGINX_PROXY_ROUTE: api
+      NGINX_PROXY_PORT: 3000
+    networks:
+      - proxy-connection
+    ports:
+      - 8080:80
 volumes:
   # persistent data volume for database
   db-data:
 networks:
   db-connection:
+    driver: bridge
+  proxy-connection:
     driver: bridge
