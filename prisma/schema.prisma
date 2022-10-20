@@ -8,7 +8,7 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String   @id @default(dbgenerated("nanoid()")) @db.Char(21)
   createdAt DateTime @default(now())
   name      String
 }
